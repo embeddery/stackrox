@@ -111,7 +111,7 @@ message Alert {
     LifecycleStage            lifecycle_stage   = 3 [(gogoproto.moretags) = "search:\"Lifecycle Stage,store\""];
 
     // Scoping information
-    
+
     string                    cluster_id        = 18 [(gogoproto.moretags) = "search:\"Cluster ID,store\""];
     string                    cluster_name      = 19 [(gogoproto.moretags) = "search:\"Cluster,store\""];
     string                    namespace         = 20 [(gogoproto.moretags) = "search:\"Namespace,store\""];
