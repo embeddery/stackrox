@@ -4768,8 +4768,8 @@ workflows:
       - gke-postgres-api-e2e-tests:
           <<: *runOnAllTagsWithQuayIOPullCtx
           requires:
-            - build
-            - build-scale-monitoring-and-mock-server
+            - setup-from-triggered-e2e-test
+            # - build-scale-monitoring-and-mock-server
             - provision-gke-postgres-api-e2e-tests
       - provision-gke-kernel-api-e2e-tests:
           <<: *runOnAllTagsWithQuayIOPullCtx
