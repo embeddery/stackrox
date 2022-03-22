@@ -98,6 +98,8 @@ func main() {
 			log.Fatal("No primary key defined, please check relevant proto file and ensure a primary key is specified using the \"sql:\"pk\"\" tag")
 		}
 
+		schema.Print()
+
 		templateMap := map[string]interface{}{
 			"Type":           props.Type,
 			"TrimmedType":    stringutils.GetAfter(props.Type, "."),

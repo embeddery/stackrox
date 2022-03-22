@@ -78,21 +78,13 @@ create table if not exists process_indicators (
     ContainerName varchar,
     PodId varchar,
     PodUid varchar,
-    Signal_Id varchar,
     Signal_ContainerId varchar,
-    Signal_Time timestamp,
     Signal_Name varchar,
     Signal_Args varchar,
     Signal_ExecFilePath varchar,
-    Signal_Pid integer,
     Signal_Uid integer,
-    Signal_Gid integer,
-    Signal_Lineage text[],
-    Signal_Scraped bool,
     ClusterId varchar,
     Namespace varchar,
-    ContainerStartTime timestamp,
-    ImageId varchar,
     serialized bytea,
     PRIMARY KEY(Id)
 )
@@ -118,7 +110,6 @@ func createTableProcessIndicatorsLineageInfo(ctx context.Context, db *pgxpool.Po
 create table if not exists process_indicators_LineageInfo (
     process_indicators_Id varchar,
     idx integer,
-    ParentUid integer,
     ParentExecFilePath varchar,
     PRIMARY KEY(process_indicators_Id, idx),
     CONSTRAINT fk_parent_table FOREIGN KEY (process_indicators_Id) REFERENCES process_indicators(Id) ON DELETE CASCADE
@@ -156,25 +147,17 @@ func insertIntoProcessIndicators(ctx context.Context, tx pgx.Tx, obj *storage.Pr
 		obj.GetContainerName(),
 		obj.GetPodId(),
 		obj.GetPodUid(),
-		obj.GetSignal().GetId(),
 		obj.GetSignal().GetContainerId(),
-		pgutils.NilOrTime(obj.GetSignal().GetTime()),
 		obj.GetSignal().GetName(),
 		obj.GetSignal().GetArgs(),
 		obj.GetSignal().GetExecFilePath(),
-		obj.GetSignal().GetPid(),
 		obj.GetSignal().GetUid(),
-		obj.GetSignal().GetGid(),
-		obj.GetSignal().GetLineage(),
-		obj.GetSignal().GetScraped(),
 		obj.GetClusterId(),
 		obj.GetNamespace(),
-		pgutils.NilOrTime(obj.GetContainerStartTime()),
-		obj.GetImageId(),
 		serialized,
 	}
 
-	finalStr := "INSERT INTO process_indicators (Id, DeploymentId, ContainerName, PodId, PodUid, Signal_Id, Signal_ContainerId, Signal_Time, Signal_Name, Signal_Args, Signal_ExecFilePath, Signal_Pid, Signal_Uid, Signal_Gid, Signal_Lineage, Signal_Scraped, ClusterId, Namespace, ContainerStartTime, ImageId, serialized) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) ON CONFLICT(Id) DO UPDATE SET Id = EXCLUDED.Id, DeploymentId = EXCLUDED.DeploymentId, ContainerName = EXCLUDED.ContainerName, PodId = EXCLUDED.PodId, PodUid = EXCLUDED.PodUid, Signal_Id = EXCLUDED.Signal_Id, Signal_ContainerId = EXCLUDED.Signal_ContainerId, Signal_Time = EXCLUDED.Signal_Time, Signal_Name = EXCLUDED.Signal_Name, Signal_Args = EXCLUDED.Signal_Args, Signal_ExecFilePath = EXCLUDED.Signal_ExecFilePath, Signal_Pid = EXCLUDED.Signal_Pid, Signal_Uid = EXCLUDED.Signal_Uid, Signal_Gid = EXCLUDED.Signal_Gid, Signal_Lineage = EXCLUDED.Signal_Lineage, Signal_Scraped = EXCLUDED.Signal_Scraped, ClusterId = EXCLUDED.ClusterId, Namespace = EXCLUDED.Namespace, ContainerStartTime = EXCLUDED.ContainerStartTime, ImageId = EXCLUDED.ImageId, serialized = EXCLUDED.serialized"
+	finalStr := "INSERT INTO process_indicators (Id, DeploymentId, ContainerName, PodId, PodUid, Signal_ContainerId, Signal_Name, Signal_Args, Signal_ExecFilePath, Signal_Uid, ClusterId, Namespace, serialized) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT(Id) DO UPDATE SET Id = EXCLUDED.Id, DeploymentId = EXCLUDED.DeploymentId, ContainerName = EXCLUDED.ContainerName, PodId = EXCLUDED.PodId, PodUid = EXCLUDED.PodUid, Signal_ContainerId = EXCLUDED.Signal_ContainerId, Signal_Name = EXCLUDED.Signal_Name, Signal_Args = EXCLUDED.Signal_Args, Signal_ExecFilePath = EXCLUDED.Signal_ExecFilePath, Signal_Uid = EXCLUDED.Signal_Uid, ClusterId = EXCLUDED.ClusterId, Namespace = EXCLUDED.Namespace, serialized = EXCLUDED.serialized"
 	_, err := tx.Exec(ctx, finalStr, values...)
 	if err != nil {
 		return err
@@ -202,11 +185,10 @@ func insertIntoProcessIndicatorsLineageInfo(ctx context.Context, tx pgx.Tx, obj 
 		// parent primary keys start
 		process_indicators_Id,
 		idx,
-		obj.GetParentUid(),
 		obj.GetParentExecFilePath(),
 	}
 
-	finalStr := "INSERT INTO process_indicators_LineageInfo (process_indicators_Id, idx, ParentUid, ParentExecFilePath) VALUES($1, $2, $3, $4) ON CONFLICT(process_indicators_Id, idx) DO UPDATE SET process_indicators_Id = EXCLUDED.process_indicators_Id, idx = EXCLUDED.idx, ParentUid = EXCLUDED.ParentUid, ParentExecFilePath = EXCLUDED.ParentExecFilePath"
+	finalStr := "INSERT INTO process_indicators_LineageInfo (process_indicators_Id, idx, ParentExecFilePath) VALUES($1, $2, $3) ON CONFLICT(process_indicators_Id, idx) DO UPDATE SET process_indicators_Id = EXCLUDED.process_indicators_Id, idx = EXCLUDED.idx, ParentExecFilePath = EXCLUDED.ParentExecFilePath"
 	_, err := tx.Exec(ctx, finalStr, values...)
 	if err != nil {
 		return err
@@ -237,11 +219,7 @@ func (s *storeImpl) copyFromProcessIndicators(ctx context.Context, tx pgx.Tx, ob
 
 		"poduid",
 
-		"signal_id",
-
 		"signal_containerid",
-
-		"signal_time",
 
 		"signal_name",
 
@@ -249,23 +227,11 @@ func (s *storeImpl) copyFromProcessIndicators(ctx context.Context, tx pgx.Tx, ob
 
 		"signal_execfilepath",
 
-		"signal_pid",
-
 		"signal_uid",
-
-		"signal_gid",
-
-		"signal_lineage",
-
-		"signal_scraped",
 
 		"clusterid",
 
 		"namespace",
-
-		"containerstarttime",
-
-		"imageid",
 
 		"serialized",
 	}
@@ -291,11 +257,7 @@ func (s *storeImpl) copyFromProcessIndicators(ctx context.Context, tx pgx.Tx, ob
 
 			obj.GetPodUid(),
 
-			obj.GetSignal().GetId(),
-
 			obj.GetSignal().GetContainerId(),
-
-			pgutils.NilOrTime(obj.GetSignal().GetTime()),
 
 			obj.GetSignal().GetName(),
 
@@ -303,23 +265,11 @@ func (s *storeImpl) copyFromProcessIndicators(ctx context.Context, tx pgx.Tx, ob
 
 			obj.GetSignal().GetExecFilePath(),
 
-			obj.GetSignal().GetPid(),
-
 			obj.GetSignal().GetUid(),
-
-			obj.GetSignal().GetGid(),
-
-			obj.GetSignal().GetLineage(),
-
-			obj.GetSignal().GetScraped(),
 
 			obj.GetClusterId(),
 
 			obj.GetNamespace(),
-
-			pgutils.NilOrTime(obj.GetContainerStartTime()),
-
-			obj.GetImageId(),
 
 			serialized,
 		})
@@ -372,8 +322,6 @@ func (s *storeImpl) copyFromProcessIndicatorsLineageInfo(ctx context.Context, tx
 
 		"idx",
 
-		"parentuid",
-
 		"parentexecfilepath",
 	}
 
@@ -386,8 +334,6 @@ func (s *storeImpl) copyFromProcessIndicatorsLineageInfo(ctx context.Context, tx
 			process_indicators_Id,
 
 			idx,
-
-			obj.GetParentUid(),
 
 			obj.GetParentExecFilePath(),
 		})
