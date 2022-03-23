@@ -110,6 +110,10 @@ create table if not exists alerts (
 	indexes := []string{
 
 		"create index if not exists alerts_LifecycleStage on alerts using btree(LifecycleStage)",
+
+		"create index if not exists alerts_Deployment_Id on alerts using hash(Deployment_Id)",
+
+		"create index if not exists alerts_State on alerts using btree(State)",
 	}
 	for _, index := range indexes {
 		if _, err := db.Exec(ctx, index); err != nil {
