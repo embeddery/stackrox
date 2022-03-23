@@ -570,20 +570,16 @@
           "type": "string"
         },
         "clusterId": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         },
         "clusterName": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         },
         "namespace": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         },
         "namespaceId": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         }
       },
       "title": "Represents an alert on a kubernetes resource (configmaps, secrets, etc.)"
@@ -952,12 +948,10 @@
           "type": "string"
         },
         "namespace": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         },
         "namespaceId": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         },
         "labels": {
           "type": "object",
@@ -966,12 +960,10 @@
           }
         },
         "clusterId": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         },
         "clusterName": {
-          "type": "string",
-          "description": "This field is deprecated and can be found at the root of Alert. It will be removed from here in a future release."
+          "type": "string"
         },
         "containers": {
           "type": "array",
