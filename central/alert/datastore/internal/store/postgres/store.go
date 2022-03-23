@@ -86,6 +86,7 @@ create table if not exists alerts (
     Policy_SORTName varchar,
     Policy_SORTLifecycleStage varchar,
     Policy_SORTEnforcement bool,
+    LifecycleStage integer,
     Deployment_Id varchar,
     Deployment_Name varchar,
     Deployment_Inactive bool,
@@ -106,39 +107,9 @@ create table if not exists alerts (
 		log.Panicf("Error creating table %s: %v", table, err)
 	}
 
-	indexes := []string{}
-	for _, index := range indexes {
-		if _, err := db.Exec(ctx, index); err != nil {
-			log.Panicf("Error creating index %s: %v", index, err)
-		}
-	}
-
-	createTableAlertsContainers(ctx, db)
-}
-
-func createTableAlertsContainers(ctx context.Context, db *pgxpool.Pool) {
-	table := `
-create table if not exists alerts_Containers (
-    alerts_Id varchar,
-    idx integer,
-    Image_Id varchar,
-    Image_Name_Registry varchar,
-    Image_Name_Remote varchar,
-    Image_Name_Tag varchar,
-    Image_Name_FullName varchar,
-    PRIMARY KEY(alerts_Id, idx),
-    CONSTRAINT fk_parent_table FOREIGN KEY (alerts_Id) REFERENCES alerts(Id) ON DELETE CASCADE
-)
-`
-
-	_, err := db.Exec(ctx, table)
-	if err != nil {
-		log.Panicf("Error creating table %s: %v", table, err)
-	}
-
 	indexes := []string{
 
-		"create index if not exists alertsContainers_idx on alerts_Containers using btree(idx)",
+		"create index if not exists alerts_LifecycleStage on alerts using btree(LifecycleStage)",
 	}
 	for _, index := range indexes {
 		if _, err := db.Exec(ctx, index); err != nil {
@@ -170,6 +141,7 @@ func insertIntoAlerts(ctx context.Context, tx pgx.Tx, obj *storage.Alert) error 
 		obj.GetPolicy().GetSORTName(),
 		obj.GetPolicy().GetSORTLifecycleStage(),
 		obj.GetPolicy().GetSORTEnforcement(),
+		obj.GetLifecycleStage(),
 		obj.GetDeployment().GetId(),
 		obj.GetDeployment().GetName(),
 		obj.GetDeployment().GetInactive(),
@@ -183,42 +155,7 @@ func insertIntoAlerts(ctx context.Context, tx pgx.Tx, obj *storage.Alert) error 
 		serialized,
 	}
 
-	finalStr := "INSERT INTO alerts (Id, Policy_Id, Policy_Name, Policy_Description, Policy_Disabled, Policy_Categories, Policy_LifecycleStages, Policy_Severity, Policy_EnforcementActions, Policy_LastUpdated, Policy_SORTName, Policy_SORTLifecycleStage, Policy_SORTEnforcement, Deployment_Id, Deployment_Name, Deployment_Inactive, Image_Id, Image_Name_Registry, Image_Name_Remote, Image_Name_Tag, Image_Name_FullName, Time, State, serialized) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) ON CONFLICT(Id) DO UPDATE SET Id = EXCLUDED.Id, Policy_Id = EXCLUDED.Policy_Id, Policy_Name = EXCLUDED.Policy_Name, Policy_Description = EXCLUDED.Policy_Description, Policy_Disabled = EXCLUDED.Policy_Disabled, Policy_Categories = EXCLUDED.Policy_Categories, Policy_LifecycleStages = EXCLUDED.Policy_LifecycleStages, Policy_Severity = EXCLUDED.Policy_Severity, Policy_EnforcementActions = EXCLUDED.Policy_EnforcementActions, Policy_LastUpdated = EXCLUDED.Policy_LastUpdated, Policy_SORTName = EXCLUDED.Policy_SORTName, Policy_SORTLifecycleStage = EXCLUDED.Policy_SORTLifecycleStage, Policy_SORTEnforcement = EXCLUDED.Policy_SORTEnforcement, Deployment_Id = EXCLUDED.Deployment_Id, Deployment_Name = EXCLUDED.Deployment_Name, Deployment_Inactive = EXCLUDED.Deployment_Inactive, Image_Id = EXCLUDED.Image_Id, Image_Name_Registry = EXCLUDED.Image_Name_Registry, Image_Name_Remote = EXCLUDED.Image_Name_Remote, Image_Name_Tag = EXCLUDED.Image_Name_Tag, Image_Name_FullName = EXCLUDED.Image_Name_FullName, Time = EXCLUDED.Time, State = EXCLUDED.State, serialized = EXCLUDED.serialized"
-	_, err := tx.Exec(ctx, finalStr, values...)
-	if err != nil {
-		return err
-	}
-
-	var query string
-
-	for childIdx, child := range obj.GetDeployment().GetContainers() {
-		if err := insertIntoAlertsContainers(ctx, tx, child, obj.GetId(), childIdx); err != nil {
-			return err
-		}
-	}
-
-	query = "delete from alerts_Containers where alerts_Id = $1 AND idx >= $2"
-	_, err = tx.Exec(ctx, query, obj.GetId(), len(obj.GetDeployment().GetContainers()))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func insertIntoAlertsContainers(ctx context.Context, tx pgx.Tx, obj *storage.Alert_Deployment_Container, alerts_Id string, idx int) error {
-
-	values := []interface{}{
-		// parent primary keys start
-		alerts_Id,
-		idx,
-		obj.GetImage().GetId(),
-		obj.GetImage().GetName().GetRegistry(),
-		obj.GetImage().GetName().GetRemote(),
-		obj.GetImage().GetName().GetTag(),
-		obj.GetImage().GetName().GetFullName(),
-	}
-
-	finalStr := "INSERT INTO alerts_Containers (alerts_Id, idx, Image_Id, Image_Name_Registry, Image_Name_Remote, Image_Name_Tag, Image_Name_FullName) VALUES($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(alerts_Id, idx) DO UPDATE SET alerts_Id = EXCLUDED.alerts_Id, idx = EXCLUDED.idx, Image_Id = EXCLUDED.Image_Id, Image_Name_Registry = EXCLUDED.Image_Name_Registry, Image_Name_Remote = EXCLUDED.Image_Name_Remote, Image_Name_Tag = EXCLUDED.Image_Name_Tag, Image_Name_FullName = EXCLUDED.Image_Name_FullName"
+	finalStr := "INSERT INTO alerts (Id, Policy_Id, Policy_Name, Policy_Description, Policy_Disabled, Policy_Categories, Policy_LifecycleStages, Policy_Severity, Policy_EnforcementActions, Policy_LastUpdated, Policy_SORTName, Policy_SORTLifecycleStage, Policy_SORTEnforcement, LifecycleStage, Deployment_Id, Deployment_Name, Deployment_Inactive, Image_Id, Image_Name_Registry, Image_Name_Remote, Image_Name_Tag, Image_Name_FullName, Time, State, serialized) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) ON CONFLICT(Id) DO UPDATE SET Id = EXCLUDED.Id, Policy_Id = EXCLUDED.Policy_Id, Policy_Name = EXCLUDED.Policy_Name, Policy_Description = EXCLUDED.Policy_Description, Policy_Disabled = EXCLUDED.Policy_Disabled, Policy_Categories = EXCLUDED.Policy_Categories, Policy_LifecycleStages = EXCLUDED.Policy_LifecycleStages, Policy_Severity = EXCLUDED.Policy_Severity, Policy_EnforcementActions = EXCLUDED.Policy_EnforcementActions, Policy_LastUpdated = EXCLUDED.Policy_LastUpdated, Policy_SORTName = EXCLUDED.Policy_SORTName, Policy_SORTLifecycleStage = EXCLUDED.Policy_SORTLifecycleStage, Policy_SORTEnforcement = EXCLUDED.Policy_SORTEnforcement, LifecycleStage = EXCLUDED.LifecycleStage, Deployment_Id = EXCLUDED.Deployment_Id, Deployment_Name = EXCLUDED.Deployment_Name, Deployment_Inactive = EXCLUDED.Deployment_Inactive, Image_Id = EXCLUDED.Image_Id, Image_Name_Registry = EXCLUDED.Image_Name_Registry, Image_Name_Remote = EXCLUDED.Image_Name_Remote, Image_Name_Tag = EXCLUDED.Image_Name_Tag, Image_Name_FullName = EXCLUDED.Image_Name_FullName, Time = EXCLUDED.Time, State = EXCLUDED.State, serialized = EXCLUDED.serialized"
 	_, err := tx.Exec(ctx, finalStr, values...)
 	if err != nil {
 		return err
@@ -264,6 +201,8 @@ func (s *storeImpl) copyFromAlerts(ctx context.Context, tx pgx.Tx, objs ...*stor
 		"policy_sortlifecyclestage",
 
 		"policy_sortenforcement",
+
+		"lifecyclestage",
 
 		"deployment_id",
 
@@ -325,6 +264,8 @@ func (s *storeImpl) copyFromAlerts(ctx context.Context, tx pgx.Tx, objs ...*stor
 
 			obj.GetPolicy().GetSORTEnforcement(),
 
+			obj.GetLifecycleStage(),
+
 			obj.GetDeployment().GetId(),
 
 			obj.GetDeployment().GetName(),
@@ -364,76 +305,6 @@ func (s *storeImpl) copyFromAlerts(ctx context.Context, tx pgx.Tx, objs ...*stor
 			deletes = nil
 
 			_, err = tx.CopyFrom(ctx, pgx.Identifier{"alerts"}, copyCols, pgx.CopyFromRows(inputRows))
-
-			if err != nil {
-				return err
-			}
-
-			// clear the input rows for the next batch
-			inputRows = inputRows[:0]
-		}
-	}
-
-	for _, obj := range objs {
-
-		if err = s.copyFromAlertsContainers(ctx, tx, obj.GetId(), obj.GetDeployment().GetContainers()...); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func (s *storeImpl) copyFromAlertsContainers(ctx context.Context, tx pgx.Tx, alerts_Id string, objs ...*storage.Alert_Deployment_Container) error {
-
-	inputRows := [][]interface{}{}
-
-	var err error
-
-	copyCols := []string{
-
-		"alerts_id",
-
-		"idx",
-
-		"image_id",
-
-		"image_name_registry",
-
-		"image_name_remote",
-
-		"image_name_tag",
-
-		"image_name_fullname",
-	}
-
-	for idx, obj := range objs {
-		// Todo: ROX-9499 Figure out how to more cleanly template around this issue.
-		log.Debugf("This is here for now because there is an issue with pods_TerminatedInstances where the obj in the loop is not used as it only consists of the parent id and the idx.  Putting this here as a stop gap to simply use the object.  %s", obj)
-
-		inputRows = append(inputRows, []interface{}{
-
-			alerts_Id,
-
-			idx,
-
-			obj.GetImage().GetId(),
-
-			obj.GetImage().GetName().GetRegistry(),
-
-			obj.GetImage().GetName().GetRemote(),
-
-			obj.GetImage().GetName().GetTag(),
-
-			obj.GetImage().GetName().GetFullName(),
-		})
-
-		// if we hit our batch size we need to push the data
-		if (idx+1)%batchSize == 0 || idx == len(objs)-1 {
-			// copy does not upsert so have to delete first.  parent deletion cascades so only need to
-			// delete for the top level parent
-
-			_, err = tx.CopyFrom(ctx, pgx.Identifier{"alerts_containers"}, copyCols, pgx.CopyFromRows(inputRows))
 
 			if err != nil {
 				return err
@@ -686,12 +557,6 @@ func (s *storeImpl) Walk(ctx context.Context, fn func(obj *storage.Alert) error)
 
 func dropTableAlerts(ctx context.Context, db *pgxpool.Pool) {
 	_, _ = db.Exec(ctx, "DROP TABLE IF EXISTS alerts CASCADE")
-	dropTableAlertsContainers(ctx, db)
-
-}
-
-func dropTableAlertsContainers(ctx context.Context, db *pgxpool.Pool) {
-	_, _ = db.Exec(ctx, "DROP TABLE IF EXISTS alerts_Containers CASCADE")
 
 }
 
