@@ -17,3 +17,15 @@ export type SearchEntry = {
     value: string; // an option ends with a colon
     label: string; // an option ends with a colon
 };
+
+// TODO Does this belong here, or under src/constants/searchOptions?
+export type SearchCategory =
+    | 'ALERTS'
+    | 'DEPLOYMENTS'
+    | 'IMAGES'
+    | 'POLICIES'
+    | 'PROCESS_INDICATORS'
+    | 'SEARCH_UNSET'
+    | 'SECRETS'
+    | 'COMPLIANCE'
+    | 'SUBJECT';
