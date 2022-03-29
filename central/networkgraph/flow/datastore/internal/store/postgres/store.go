@@ -158,6 +158,8 @@ func insertIntoNetworkflow(ctx context.Context, tx pgx.Tx, clusterID string, obj
 
 func (s *flowStoreImpl) copyFromNetworkflow(ctx context.Context, tx pgx.Tx, objs ...*storage.NetworkFlow) error {
 
+	log.Info("copyFromNetworkFlow")
+
 	inputRows := [][]interface{}{}
 	var err error
 
@@ -405,6 +407,7 @@ func (s *flowStoreImpl) readRows(rows pgx.Rows, pred func(*storage.NetworkFlowPr
 
 // Delete removes the specified ID from the store
 func (s *flowStoreImpl) Delete(ctx context.Context, propsSrcEntityType storage.NetworkEntityInfo_Type, propsSrcEntityID string, propsDstEntityType storage.NetworkEntityInfo_Type, propsDstEntityID string, propsDstPort uint32, propsL4Protocol storage.L4Protocol) error {
+	log.Info("Delete")
 	defer metrics.SetPostgresOperationDurationTime(time.Now(), ops.Remove, "NetworkFlow")
 
 	conn, release := s.acquireConn(ctx, ops.Remove, "NetworkFlow")
@@ -470,12 +473,13 @@ func (s *flowStoreImpl) Walk(ctx context.Context, fn func(obj *storage.NetworkFl
 
 // RemoveFlowsForDeployment removes all flows where the source OR destination match the deployment id
 func (s *flowStoreImpl) RemoveFlowsForDeployment(ctx context.Context, id string) error {
+	log.Info("RemoveFlowsForDeployment")
 	defer metrics.SetPostgresOperationDurationTime(time.Now(), ops.Remove, "NetworkFlow")
 
 	conn, release := s.acquireConn(ctx, ops.Remove, "NetworkFlow")
 	defer release()
 
-	if _, err := conn.Exec(ctx, deleteDeploymentStmt, id); err != nil {
+	if _, err := conn.Exec(ctx, deleteDeploymentStmt, s.clusterID, id); err != nil {
 		return err
 	}
 	return nil
@@ -535,6 +539,7 @@ func (s *flowStoreImpl) GetMatchingFlows(ctx context.Context, pred func(*storage
 }
 
 func (s *flowStoreImpl) delete(ctx context.Context, objs ...*storage.NetworkFlowProperties) error {
+	log.Info("delete")
 	conn, release := s.acquireConn(ctx, ops.Remove, "NetworkFlow")
 	defer release()
 
@@ -562,6 +567,7 @@ func (s *flowStoreImpl) delete(ctx context.Context, objs ...*storage.NetworkFlow
 
 // RemoveFlow removes the specified flow from the store
 func (s *flowStoreImpl) RemoveFlow(ctx context.Context, props *storage.NetworkFlowProperties) error {
+	log.Info("RemoveFlow")
 	defer metrics.SetPostgresOperationDurationTime(time.Now(), ops.Remove, "NetworkFlow")
 
 	if err := s.delete(ctx, props); err != nil {
@@ -573,6 +579,7 @@ func (s *flowStoreImpl) RemoveFlow(ctx context.Context, props *storage.NetworkFl
 // RemoveMatchingFlows removes the specified flows from the store
 // Todo: Figure out what to do with the functions.
 func (s *flowStoreImpl) RemoveMatchingFlows(ctx context.Context, keyMatchFn func(props *storage.NetworkFlowProperties) bool, valueMatchFn func(flow *storage.NetworkFlow) bool) error {
+	log.Info("RemoveMatchingFlows")
 	defer metrics.SetPostgresOperationDurationTime(time.Now(), ops.Remove, "NetworkFlow")
 
 	conn, release := s.acquireConn(ctx, ops.Remove, "NetworkFlow")
