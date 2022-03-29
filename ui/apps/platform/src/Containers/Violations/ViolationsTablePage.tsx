@@ -30,14 +30,13 @@ function runAfter5Seconds(fn: () => void) {
 const searchCategory: SearchCategory = 'ALERTS';
 
 function ViolationsTablePage(): ReactElement {
+    // Handle changes to applied search options.
     const [searchOptions, setSearchOptions] = useState<string[]>([]);
     const { searchFilter, setSearchFilter } = useSearch();
-    // Handle changes to applied search options.
     const [isViewFiltered, setIsViewFiltered] = useState(false);
 
     // Handle changes in the current table page.
-    const [currentPage, setCurrentPage] = useUrlPagination();
-    const [perPage, setPerPage] = useState(50);
+    const { page, perPage, setPage, setPerPage } = useUrlPagination(50);
 
     // Handle changes in the currently displayed violations.
     const [currentPageAlerts, setCurrentPageAlerts] = useEntitiesByIdsCache();
@@ -70,10 +69,10 @@ function ViolationsTablePage(): ReactElement {
 
     if (hasExecutableFilter && !isViewFiltered) {
         setIsViewFiltered(true);
-        setCurrentPage(1);
+        setPage(1);
     } else if (hasNoFilter && isViewFiltered) {
         setIsViewFiltered(false);
-        setCurrentPage(1);
+        setPage(1);
     }
 
     // When any of the deps to this effect change, we want to reload the alerts and count.
@@ -82,7 +81,7 @@ function ViolationsTablePage(): ReactElement {
             // Get the alerts that match the search request for the current page.
             setCurrentPageAlertsErrorMessage('');
             setIsFetching(true);
-            fetchAlerts(searchFilter, sortOption, currentPage - 1, perPage)
+            fetchAlerts(searchFilter, sortOption, page - 1, perPage)
                 .then((alerts) => {
                     setCurrentPageAlerts(alerts);
                 })
@@ -112,7 +111,7 @@ function ViolationsTablePage(): ReactElement {
     }, [
         searchFilter,
         searchOptions,
-        currentPage,
+        page,
         sortOption,
         pollEpoch,
         setCurrentPageAlerts,
@@ -159,7 +158,7 @@ function ViolationsTablePage(): ReactElement {
                     handleChangeSearchFilter={handleChangeSearchFilter}
                     placeholder="Filter violations"
                     searchCategory={searchCategory}
-                    searchFilter={searchFilter ?? {}}
+                    searchFilter={searchFilter}
                     searchOptions={searchOptions}
                 />
             </PageSection>
@@ -173,8 +172,8 @@ function ViolationsTablePage(): ReactElement {
                         <ViolationsTablePanel
                             violations={currentPageAlerts}
                             violationsCount={alertCount}
-                            currentPage={currentPage}
-                            setCurrentPage={setCurrentPage}
+                            currentPage={page}
+                            setCurrentPage={setPage}
                             resolvableAlerts={resolvableAlerts}
                             excludableAlerts={excludableAlerts}
                             perPage={perPage}
