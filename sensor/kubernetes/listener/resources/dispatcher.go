@@ -72,6 +72,7 @@ func NewDispatcherRegistry(
 	rbacUpdater := rbac.NewStore()
 	portExposureReconciler := newPortExposureReconciler(deploymentStore, serviceStore)
 	registryStore := registry.Singleton()
+	netPolStore := newNetworkPolicyStore()
 
 	return &registryImpl{
 		deploymentHandler: newDeploymentHandler(clusterID, serviceStore, deploymentStore, podStore, endpointManager, nsStore,
@@ -82,7 +83,7 @@ func NewDispatcherRegistry(
 		serviceDispatcher:         newServiceDispatcher(serviceStore, deploymentStore, endpointManager, portExposureReconciler),
 		osRouteDispatcher:         newRouteDispatcher(serviceStore, portExposureReconciler),
 		secretDispatcher:          newSecretDispatcher(registryStore),
-		networkPolicyDispatcher:   newNetworkPolicyDispatcher(),
+		networkPolicyDispatcher:   newNetworkPolicyDispatcher(netPolStore, deploymentStore, detector),
 		nodeDispatcher:            newNodeDispatcher(serviceStore, deploymentStore, nodeStore, endpointManager),
 		serviceAccountDispatcher:  newServiceAccountDispatcher(),
 		clusterOperatorDispatcher: newClusterOperatorDispatcher(namespaces),
