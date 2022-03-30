@@ -69,19 +69,10 @@ func (h *networkPolicyDispatcher) ProcessEvent(obj, _ interface{}, action centra
 
 	if action == central.ResourceAction_REMOVE_RESOURCE {
 		h.netpolStore.removeNetworkPolicy(netpolWrap)
-		h.updateDeploymentsFromStore(netpolWrap, sel, action)
-		return []*central.SensorEvent{
-			{
-				Id:     string(np.UID),
-				Action: action,
-				Resource: &central.SensorEvent_NetworkPolicy{
-					NetworkPolicy: roxNetpol,
-				},
-			},
-		}
+	} else {
+		h.netpolStore.addOrUpdateNetworkPolicy(netpolWrap)
 	}
 
-	h.netpolStore.addOrUpdateNetworkPolicy(netpolWrap)
 	if action == central.ResourceAction_UPDATE_RESOURCE {
 		if sel != nil {
 			sel = or(sel, netpolWrap.selector)
@@ -91,7 +82,7 @@ func (h *networkPolicyDispatcher) ProcessEvent(obj, _ interface{}, action centra
 	} else if action == central.ResourceAction_CREATE_RESOURCE {
 		sel = netpolWrap.selector
 	}
-	h.updateDeploymentsFromStore(netpolWrap, sel, action)
+	h.updateDeploymentsFromStore(netpolWrap, sel)
 
 	return []*central.SensorEvent{
 		{
@@ -104,7 +95,7 @@ func (h *networkPolicyDispatcher) ProcessEvent(obj, _ interface{}, action centra
 	}
 }
 
-func (h *networkPolicyDispatcher) updateDeploymentsFromStore(np *networkPolicyWrap, sel selector, action central.ResourceAction) {
+func (h *networkPolicyDispatcher) updateDeploymentsFromStore(np *networkPolicyWrap, sel selector) {
 	for _, deploymentWrap := range h.deploymentStore.getMatchingDeployments(np.GetNamespace(), sel) {
 		h.reconciler.UpdateNetworkPolicyForDeployment(deploymentWrap)
 		h.detector.ProcessDeployment(deploymentWrap.GetDeployment(), central.ResourceAction_UPDATE_RESOURCE)
